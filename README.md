@@ -1,1 +1,0 @@
-# image-grounded-narrative-generation
