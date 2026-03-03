@@ -1,2 +1,21 @@
+# Project-specific files
 abstract.pdf
 Image_captioning.pdf
+constraint_generation/test.py
+constraint_generation/test_constraint_generation.py
+
+# Python virtual environments
+.venv/
+env/
+ENV/
+
+# Python bytecode & caches
+__pycache__/
+
+# Logs
+*.log
+*.pot
+
+# Environment files
+.env
+.env.local
