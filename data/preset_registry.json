@@ -1,0 +1,133 @@
+{
+  "Neutral_Descriptive": {
+    "levels": {
+      "0": {
+        "max_length": 120,
+        "tone": "neutral_descriptive",
+        "perspective": "third_person",
+        "allowed_emotion_inference": "limited",
+        "negative_rules": [
+          "NO_NEW_ENTITIES",
+          "NO_INTERNAL_THOUGHTS",
+          "NO_OFF_IMAGE_LOCATIONS",
+          "NO_TEMPORAL_JUMPS"
+        ]
+      },
+      "1": {
+        "max_length": 90,
+        "tone": "strict_descriptive",
+        "perspective": "third_person",
+        "allowed_emotion_inference": "none",
+        "negative_rules": [
+          "NO_NEW_ENTITIES",
+          "NO_INTERNAL_THOUGHTS",
+          "NO_OFF_IMAGE_LOCATIONS",
+          "NO_TEMPORAL_JUMPS",
+          "NO_REFLECTIVE_LANGUAGE"
+        ]
+      },
+      "2": {
+        "max_length": 60,
+        "tone": "minimal_descriptive",
+        "perspective": "third_person",
+        "allowed_emotion_inference": "none",
+        "negative_rules": [
+          "NO_NEW_ENTITIES",
+          "NO_INTERNAL_THOUGHTS",
+          "NO_OFF_IMAGE_LOCATIONS",
+          "NO_TEMPORAL_JUMPS",
+          "NO_REFLECTIVE_LANGUAGE",
+          "NO_ADJECTIVAL_EXPANSION"
+        ]
+      }
+    }
+  },
+
+  "Reflective_Light": {
+    "levels": {
+      "0": {
+        "max_length": 140,
+        "tone": "reflective_light",
+        "perspective": "third_person",
+        "allowed_emotion_inference": "limited",
+        "negative_rules": [
+          "NO_NEW_ENTITIES",
+          "NO_INTERNAL_THOUGHTS",
+          "NO_OFF_IMAGE_LOCATIONS",
+          "NO_TEMPORAL_JUMPS"
+        ]
+      },
+      "1": {
+        "max_length": 100,
+        "tone": "soft_descriptive",
+        "perspective": "third_person",
+        "allowed_emotion_inference": "limited",
+        "negative_rules": [
+          "NO_NEW_ENTITIES",
+          "NO_INTERNAL_THOUGHTS",
+          "NO_OFF_IMAGE_LOCATIONS",
+          "NO_TEMPORAL_JUMPS",
+          "NO_EXTENDED_METAPHOR"
+        ]
+      },
+      "2": {
+        "max_length": 70,
+        "tone": "neutral_descriptive",
+        "perspective": "third_person",
+        "allowed_emotion_inference": "none",
+        "negative_rules": [
+          "NO_NEW_ENTITIES",
+          "NO_INTERNAL_THOUGHTS",
+          "NO_OFF_IMAGE_LOCATIONS",
+          "NO_TEMPORAL_JUMPS",
+          "NO_EXTENDED_METAPHOR",
+          "NO_REFLECTIVE_LANGUAGE"
+        ]
+      }
+    }
+  },
+
+  "Expressive_Grounded": {
+    "levels": {
+      "0": {
+        "max_length": 160,
+        "tone": "expressive_grounded",
+        "perspective": "third_person",
+        "allowed_emotion_inference": "limited",
+        "negative_rules": [
+          "NO_NEW_ENTITIES",
+          "NO_INTERNAL_THOUGHTS",
+          "NO_OFF_IMAGE_LOCATIONS",
+          "NO_TEMPORAL_JUMPS"
+        ]
+      },
+      "1": {
+        "max_length": 120,
+        "tone": "controlled_expressive",
+        "perspective": "third_person",
+        "allowed_emotion_inference": "limited",
+        "negative_rules": [
+          "NO_NEW_ENTITIES",
+          "NO_INTERNAL_THOUGHTS",
+          "NO_OFF_IMAGE_LOCATIONS",
+          "NO_TEMPORAL_JUMPS",
+          "NO_EXTENDED_METAPHOR"
+        ]
+      },
+      "2": {
+        "max_length": 80,
+        "tone": "neutral_descriptive",
+        "perspective": "third_person",
+        "allowed_emotion_inference": "none",
+        "negative_rules": [
+          "NO_NEW_ENTITIES",
+          "NO_INTERNAL_THOUGHTS",
+          "NO_OFF_IMAGE_LOCATIONS",
+          "NO_TEMPORAL_JUMPS",
+          "NO_EXTENDED_METAPHOR",
+          "NO_REFLECTIVE_LANGUAGE"
+        ]
+      }
+    }
+  }
+}
