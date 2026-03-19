@@ -1,6 +1,7 @@
-def build_prompt(input_data, constraints):
+def build_prompt(input_data):
     caption = input_data["caption_data"]["caption_text"]
     tokens = input_data["caption_data"]["tokens"]
+    constraints = input_data["constraints"]
 
     negative_rules = "\n".join([f"- {rule}" for rule in constraints["negative_rules"]])
 
@@ -23,17 +24,17 @@ STRICT RULES:
 {negative_rules}
 
 Tasks:
-1. Generate a short story grounded ONLY in the caption.
-2. Extract:
+1. Generate a short story strictly based on the caption.
+2. Extract semantic signals:
    - subjects
    - objects
    - environment
    - actions
    - attributes
-3. Split into sentences
+3. Split story into sentences
 4. Count words
 
-Return ONLY JSON:
+Return ONLY valid JSON:
 {{
   "signal_extraction": {{
     "semantic_signals": {{
