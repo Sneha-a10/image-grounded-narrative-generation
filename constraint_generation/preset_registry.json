@@ -8,9 +8,10 @@
         "allowed_emotion_inference": "limited",
         "negative_rules": [
           "NO_NEW_ENTITIES",
-          "NO_INTERNAL_THOUGHTS",
           "NO_OFF_IMAGE_LOCATIONS",
-          "NO_TEMPORAL_JUMPS"
+          "NO_TEMPORAL_JUMPS",
+          "LIMIT_INTERNAL_STATES",
+          "LIMIT_ADJECTIVES"
         ]
       },
       "1": {
@@ -20,9 +21,10 @@
         "allowed_emotion_inference": "none",
         "negative_rules": [
           "NO_NEW_ENTITIES",
-          "NO_INTERNAL_THOUGHTS",
           "NO_OFF_IMAGE_LOCATIONS",
           "NO_TEMPORAL_JUMPS",
+          "LIMIT_INTERNAL_STATES",
+          "LIMIT_ADJECTIVES",
           "NO_REFLECTIVE_LANGUAGE"
         ]
       },
@@ -33,16 +35,16 @@
         "allowed_emotion_inference": "none",
         "negative_rules": [
           "NO_NEW_ENTITIES",
-          "NO_INTERNAL_THOUGHTS",
           "NO_OFF_IMAGE_LOCATIONS",
           "NO_TEMPORAL_JUMPS",
+          "LIMIT_INTERNAL_STATES",
+          "LIMIT_ADJECTIVES",
           "NO_REFLECTIVE_LANGUAGE",
-          "NO_ADJECTIVAL_EXPANSION"
+          "LIMIT_METAPHORS"
         ]
       }
     }
   },
-
   "Reflective_Light": {
     "levels": {
       "0": {
@@ -52,9 +54,10 @@
         "allowed_emotion_inference": "limited",
         "negative_rules": [
           "NO_NEW_ENTITIES",
-          "NO_INTERNAL_THOUGHTS",
           "NO_OFF_IMAGE_LOCATIONS",
-          "NO_TEMPORAL_JUMPS"
+          "NO_TEMPORAL_JUMPS",
+          "LIMIT_INTERNAL_STATES",
+          "LIMIT_ADJECTIVES"
         ]
       },
       "1": {
@@ -64,10 +67,11 @@
         "allowed_emotion_inference": "limited",
         "negative_rules": [
           "NO_NEW_ENTITIES",
-          "NO_INTERNAL_THOUGHTS",
           "NO_OFF_IMAGE_LOCATIONS",
           "NO_TEMPORAL_JUMPS",
-          "NO_EXTENDED_METAPHOR"
+          "LIMIT_INTERNAL_STATES",
+          "LIMIT_ADJECTIVES",
+          "LIMIT_METAPHORS"
         ]
       },
       "2": {
@@ -77,16 +81,16 @@
         "allowed_emotion_inference": "none",
         "negative_rules": [
           "NO_NEW_ENTITIES",
-          "NO_INTERNAL_THOUGHTS",
           "NO_OFF_IMAGE_LOCATIONS",
           "NO_TEMPORAL_JUMPS",
-          "NO_EXTENDED_METAPHOR",
+          "LIMIT_INTERNAL_STATES",
+          "LIMIT_ADJECTIVES",
+          "LIMIT_METAPHORS",
           "NO_REFLECTIVE_LANGUAGE"
         ]
       }
     }
   },
-
   "Expressive_Grounded": {
     "levels": {
       "0": {
@@ -96,9 +100,10 @@
         "allowed_emotion_inference": "limited",
         "negative_rules": [
           "NO_NEW_ENTITIES",
-          "NO_INTERNAL_THOUGHTS",
           "NO_OFF_IMAGE_LOCATIONS",
-          "NO_TEMPORAL_JUMPS"
+          "NO_TEMPORAL_JUMPS",
+          "LIMIT_INTERNAL_STATES",
+          "LIMIT_ADJECTIVES"
         ]
       },
       "1": {
@@ -108,10 +113,11 @@
         "allowed_emotion_inference": "limited",
         "negative_rules": [
           "NO_NEW_ENTITIES",
-          "NO_INTERNAL_THOUGHTS",
           "NO_OFF_IMAGE_LOCATIONS",
           "NO_TEMPORAL_JUMPS",
-          "NO_EXTENDED_METAPHOR"
+          "LIMIT_INTERNAL_STATES",
+          "LIMIT_ADJECTIVES",
+          "LIMIT_METAPHORS"
         ]
       },
       "2": {
@@ -121,10 +127,11 @@
         "allowed_emotion_inference": "none",
         "negative_rules": [
           "NO_NEW_ENTITIES",
-          "NO_INTERNAL_THOUGHTS",
           "NO_OFF_IMAGE_LOCATIONS",
           "NO_TEMPORAL_JUMPS",
-          "NO_EXTENDED_METAPHOR",
+          "LIMIT_INTERNAL_STATES",
+          "LIMIT_ADJECTIVES",
+          "LIMIT_METAPHORS",
           "NO_REFLECTIVE_LANGUAGE"
         ]
       }

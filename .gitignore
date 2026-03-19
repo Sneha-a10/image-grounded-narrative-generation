@@ -19,3 +19,6 @@ __pycache__/
 # Environment files
 .env
 .env.local
+
+constraint_generation_schema.docx
+vision_layer_schema.docx

@@ -52,7 +52,3 @@ more.
 -   Presets are static and version-controlled
 -   Instance-level overrides are handled outside this module
 
-## Design Philosophy
-
-If this component feels adaptive, intelligent, or content-aware, it is
-incorrectly implemented.
