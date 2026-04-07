@@ -1,26 +1,34 @@
-import math
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+
 
 class CaptionStoryScorer:
 
-    def _tokenize(self, text):
-        return set(text.lower().split())
+    def __init__(self):
+        self.model = SentenceTransformer("all-MiniLM-L6-v2")
 
-    def _cosine_similarity(self, set1, set2):
-        intersection = len(set1.intersection(set2))
-        
-        if not set1 or not set2:
-            return 0.0
-        
-        return intersection / math.sqrt(len(set1) * len(set2))
+    def score(self, caption, story_text):
+        """
+        caption: string
+        story_text: string
+        """
 
-    def score(self, caption_text: str, story_text: str) -> float:
-
-        if not caption_text or not story_text:
+        if not caption or not story_text:
             return 0.0
 
-        tokens1 = self._tokenize(caption_text)
-        tokens2 = self._tokenize(story_text)
+        # Encode both texts
+        embeddings = self.model.encode([caption, story_text])
 
-        score = self._cosine_similarity(tokens1, tokens2)
+        caption_emb = embeddings[0]
+        story_emb = embeddings[1]
 
-        return round(score, 3)
+        # Cosine similarity
+        cosine_sim = cosine_similarity(
+            [caption_emb],
+            [story_emb]
+        )[0][0]
+
+        # Normalize to [0,1]
+        score = (cosine_sim + 1) / 2
+
+        return round(float(score), 3)
