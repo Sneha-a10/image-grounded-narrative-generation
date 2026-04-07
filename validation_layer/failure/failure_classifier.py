@@ -1,22 +1,23 @@
 class FailureClassifier:
 
-    def classify(self, scores, constraint_violation):
-
-        if constraint_violation:
-            return "constraint_violation"
+    def classify(self, image_score, caption_score, signal_score, final_score):
 
         failures = []
 
-        if scores["image_score"] < 0.6:
+        if image_score < 0.5:
             failures.append("image_misalignment")
 
-        if scores["caption_score"] < 0.6:
+        if caption_score < 0.5:
             failures.append("caption_misalignment")
 
-        if scores["signal_score"] < 0.6:
+        if signal_score < 0.4:
             failures.append("signal_violation")
 
+        # --- DECISION ---
         if len(failures) == 1:
             return failures[0]
 
-        return "multi_failure"
+        if len(failures) > 1:
+            return "multi_failure"
+
+        return "no_failure"

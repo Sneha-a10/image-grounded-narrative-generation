@@ -1,15 +1,14 @@
 class ScoreAggregator:
 
-    def aggregate(self, scores):
+    def aggregate(self, image_score, caption_score, signal_score):
+        """
+        All inputs must be in [0,1]
+        """
 
-        image = scores["image_score"]
-        caption = scores["caption_score"]
-        signal = scores["signal_score"]
-
-        final = (
-            0.5 * image +
-            0.25 * caption +
-            0.25 * signal
+        final_score = (
+            0.5 * image_score
+            + 0.25 * caption_score
+            + 0.25 * signal_score
         )
 
-        return round(final, 3)
+        return round(final_score, 3)

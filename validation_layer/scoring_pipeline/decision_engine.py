@@ -1,12 +1,12 @@
 class DecisionEngine:
 
-    def decide(self, final_score, scores):
+    def decide(self, image_score, caption_score, signal_score, final_score):
 
         if (
-            final_score >= 0.75 and
-            scores["image_score"] >= 0.6 and
-            scores["caption_score"] >= 0.6 and
-            scores["signal_score"] >= 0.6
+            final_score >= 0.6
+            and image_score >= 0.5
+            and caption_score >= 0.5
+            and signal_score >= 0.4
         ):
             return "ACCEPT"
 
