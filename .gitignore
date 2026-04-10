@@ -1,0 +1,32 @@
+# Project-specific files
+abstract.pdf
+Image_captioning.pdf
+constraint_generation/test.py
+constraint_generation/test_constraint_generation.py
+
+# Python virtual environments
+.venv/
+env/
+ENV/
+
+# Python bytecode & caches
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Logs
+*.log
+*.pot
+
+# Environment files
+.env
+.env.local
+
+constraint_generation_schema.docx
+vision_layer_schema.docx
+
+language-layer/
+
+pytest_output.txt
+
+Project_Understanding_Questionnaire.md

@@ -1,0 +1,7 @@
+pydantic
+pytest
+transformers
+sentence-transformers
+scikit-learn
+pillow
+spacy

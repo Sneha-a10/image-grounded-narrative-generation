@@ -1,1 +1,1 @@
-# image-grounded-narrative-generation
+python -m pytest validation_layer/tests/
