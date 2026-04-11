@@ -1,13 +1,17 @@
+import sys
+import random
+
+sys.path.append(".")
+
 from main_pipeline import Pipeline
 
-# Minimal valid input
 data = {
     "image_id": "img_001",
     "caption_data": {
         "caption_text": "A dog playing in a park"
     },
     "visual_features": {
-        "embedding_vector": [0.1, 0.2, 0.3]
+        "embedding_vector": [random.uniform(-1, 1) for _ in range(512)]
     },
     "generation_output": {
         "story_text": "dog playing in park",

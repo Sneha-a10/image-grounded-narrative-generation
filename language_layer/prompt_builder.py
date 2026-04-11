@@ -6,33 +6,47 @@ def build_prompt(input_data):
     negative_rules = "\n".join([f"- {rule}" for rule in constraints["negative_rules"]])
 
     prompt = f"""
-  You are a controlled story generation system.
+You are a STRICT controlled story generator.
+
+You MUST follow the given signals EXACTLY.
+
+INPUT:
 
 Caption:
 "{caption}"
 
-Signals:
-{signals}
+Subject:
+{signals["subject"]}
 
-Constraints:
+Objects:
+{signals["objects"]}
+
+Environment:
+{signals["environment"]}
+
+Action:
+{signals["action_state"]}
+
+Emotion:
+{signals["emotion_hint"]}
+
+CONSTRAINTS:
 - Max Length: {constraints['max_length']} words
 - Tone: {constraints['tone']}
 - Perspective: {constraints['perspective']}
-- Emotion Constraint: {constraints['allowed_emotion_inference']}
 
 STRICT RULES:
 {negative_rules}
 
-Task:
-Generate a short story using ONLY the provided signals.
-
-You MUST follow:
-- Use only the given entities
-- Use only the given environment
-- Do not introduce new elements
-- Keep it simple and controlled
+HARD REQUIREMENTS:
+- DO NOT introduce new entities
+- ONLY use listed subject and objects
+- ONLY use listed environment
+- KEEP story simple and direct
+- Emotion must match given emotion
 
 Return ONLY valid JSON:
+
 {{
   "story_text": "",
   "mentioned_entities": [],

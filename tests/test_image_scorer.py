@@ -5,10 +5,6 @@ import random
 def test_image_scorer():
     scorer = ImageStoryScorer()
 
-    # Mock embedding (simulate vision layer output)
-    # So:
-    # scores will NOT be meaningful yet
-    # this is ONLY to verify pipeline works
     image_embedding = [random.uniform(-1, 1) for _ in range(512)]
 
     signals = {
@@ -29,9 +25,12 @@ def test_image_scorer():
     print("BAD:", bad_result)
     print("HALLUCINATED:", hallucinated_result)
 
-    assert 0 <= good_result['similarity'] <= 1
-    assert 0 <= good_result['match_score'] <= 1
-    assert 0 <= bad_result['similarity'] <= 1
-    assert 0 <= bad_result['match_score'] <= 1
-    assert 0 <= hallucinated_result['similarity'] <= 1
-    assert 0 <= hallucinated_result['match_score'] <= 1
+    # TYPE CHECK
+    assert isinstance(good_result, float)
+    assert isinstance(bad_result, float)
+    assert isinstance(hallucinated_result, float)
+
+    # RANGE CHECK
+    assert 0 <= good_result <= 1
+    assert 0 <= bad_result <= 1
+    assert 0 <= hallucinated_result <= 1

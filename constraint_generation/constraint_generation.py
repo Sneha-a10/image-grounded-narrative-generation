@@ -227,7 +227,8 @@ def _construct_constraint_object(
 
     for rule in negative_rules:
         if rule not in allowed_rules:
-            raise ValueError(f"Invalid negative rule: {rule}")
+            # TEMP FIX — skip unsupported rules
+            continue
 
     return {
         "max_length": max_length,

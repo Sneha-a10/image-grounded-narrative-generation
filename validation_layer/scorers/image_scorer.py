@@ -83,12 +83,7 @@ class ImageStoryScorer:
         # clamp to [0,1]
         image_score = max(0.0, min(1.0, image_score))
 
-        return {
-            "image_score": round(image_score, 3),
-            "similarity": round(similarity, 3),
-            "match_score": round(match_score, 3),
-            "hallucination_rate": round(hallucination_rate, 3)
-        }
+        return round(float(image_score), 3)
 
     def _extract_expected_entities(self, signals):
         entities = set()

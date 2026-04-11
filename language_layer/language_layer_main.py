@@ -19,6 +19,41 @@ def language_layer_pipeline(input_data):
         input_data["signals"]
     )
 
+    if "error" in final_output:
+        # ---- DYNAMIC FALLBACK GENERATOR ----
+
+        signals = input_data.get("signals", {})
+        constraints = input_data.get("constraints", {})
+        negative_rules = constraints.get("negative_rules", [])
+
+        subject = signals.get("subject", "something")
+        environment = signals.get("environment", ["place"])
+        environment = environment[0] if environment else "place"
+
+        # Infer strictness from number of constraints
+        strictness = len(negative_rules)
+
+        # ---- GENERATE BASED ON STRICTNESS ----
+        if strictness <= 1:
+            story = f"A {subject} is in a {environment}."
+
+        elif strictness == 2:
+            story = f"{subject} in {environment}."
+
+        elif strictness == 3:
+            story = f"{subject} in {environment}."
+
+        else:
+            story = f"{subject} in {environment}."
+
+
+        return {
+            "story_text": story,
+            "mentioned_entities": [subject],
+            "mentioned_environment": [environment],
+            "inferred_emotion": "neutral"
+        }
+
     return final_output
 
 

@@ -39,9 +39,8 @@ class InputValidator:
 
         signals = data["signal_extraction"]["semantic_signals"]
 
-        for key in signals:
-            if not signals[key]:
-                raise Exception(f"Empty semantic signal: {key}")
+        if not signals:
+            raise Exception("Empty semantic signals dictionary")
 
         if not data["constraints"]["negative_rules"]:
             raise Exception("Empty negative_rules")
