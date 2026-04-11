@@ -285,11 +285,121 @@ def adapt_to_validation_format(caption, embedding, signals, story_output):
     }
 
 
-def run_full_pipeline(image_path: str):
+def run_full_pipeline(image_path: str, mode="real"):
+    """
+    mode:
+    - "debug" → fast (random embedding, skips heavy models)
+    - "real"  → full system (CLIP + BLIP + signals)
+    """
 
+    import random
+
+    print(f"\n🚀 RUNNING MODE: {mode.upper()}\n")
+
+    # -------------------------
+    # 🔴 MODE 1: DEBUG (FAST)
+    # -------------------------
+    if mode == "debug":
+
+        caption = "A dog playing with a ball in a park"
+
+        signals = {
+            "subject": "dog",
+            "objects": ["ball"],
+            "environment": ["park"],
+            "action_state": "playing",
+            "emotion_hint": "happy"
+        }
+
+        embedding = [random.uniform(-1, 1) for _ in range(512)]
+
+        print("DEBUG CAPTION:", caption)
+        print("DEBUG SIGNALS:", signals)
+
+    # -------------------------
+    # 🟢 MODE 2: REAL SYSTEM
+    # -------------------------
+    else:
+        # 1. Vision (CLIP)
+        encoder = VisionEncoder()
+        embedding = encoder.encode(image_path)
+        print("EMBEDDING:", len(embedding))
+
+        # 2. Caption (BLIP)
+        captioner = ImageCaptioner()
+        caption = captioner.generate_caption(image_path)
+        print("CAPTION:", caption)
+
+        # 3. Signals
+        extractor = SignalExtractor()
+        signals = extractor.extract(caption)
+        print("SIGNALS:", signals)
+
+    # -------------------------
+    # 🔴 LANGUAGE LAYER INPUT
+    # -------------------------
+    input_data = {
+        "image_id": "test_img",
+        "caption": caption,
+        "signals": signals,
+        "constraints": {
+            "max_length": 100,
+            "tone": "neutral",
+            "perspective": "third_person",
+            "allowed_emotion_inference": "limited",
+            "negative_rules": [
+                "NO_NEW_ENTITIES",
+                "NO_OFF_IMAGE_LOCATIONS"
+            ]
+        }
+    }
+
+    # Free memory before calling Ollama
+    if "encoder" in locals():
+        del encoder
+    if "captioner" in locals():
+        del captioner
+    import gc
+    gc.collect()
+    import torch
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    # 4. Generate story
+    story_output = language_layer_pipeline(input_data)
+
+    print("\n🧠 GENERATED STORY:")
+    print(story_output)
+
+    if "error" in story_output:
+        print("❌ Language layer failed")
+        return {"decision": "REJECT", "reason": "generation_failed"}
+
+    # -------------------------
+    # 🔴 ADAPT FOR VALIDATION
+    # -------------------------
+    validation_input = adapt_to_validation_format(
+        caption,
+        embedding,
+        signals,
+        story_output
+    )
+
+    # -------------------------
+    # 🔴 RUN PIPELINE
+    # -------------------------
+    pipeline = Pipeline("Neutral_Descriptive")
+    result = pipeline.run(validation_input)
+
+    print("\n✅ FINAL RESULT:")
+    print(result)
+
+    return result
+
+    image_path = "test.png"
     # 1. Vision (embedding)
     encoder = VisionEncoder()
-    embedding = encoder.encode()
+    embedding = encoder.encode(image_path)
 
     print("EMBEDDING:", embedding.shape)
 

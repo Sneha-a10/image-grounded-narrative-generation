@@ -22,8 +22,8 @@ class VisionEncoder:
         self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(self.device)
         self.processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-    def encode(self):
-        image = Image.open("test.png").convert("RGB")
+    def encode(self, image_path):
+        image = Image.open(image_path).convert("RGB")
 
         inputs = self.processor(images=image, return_tensors="pt").to(self.device)
 

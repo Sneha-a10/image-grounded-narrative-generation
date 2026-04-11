@@ -1,39 +1,17 @@
-import sys
-import random
+from main_pipeline import run_full_pipeline
 
-sys.path.append(".")
+def test():
 
-from main_pipeline import Pipeline
+    image_path = "test.png"
 
-data = {
-    "image_id": "img_001",
-    "caption_data": {
-        "caption_text": "A dog playing in a park"
-    },
-    "visual_features": {
-        "embedding_vector": [random.uniform(-1, 1) for _ in range(512)]
-    },
-    "generation_output": {
-        "story_text": "dog playing in park",
-        "sentences": ["dog playing in park"],
-        "word_count": 4
-    },
-    "signal_extraction": {
-        "semantic_signals": {
-            "subjects": ["dog"],
-            "objects": ["ball"],
-            "environment": ["park"],
-            "actions": ["playing"],
-            "attributes": ["happy"]
-        }
-    },
-    "constraints": {
-        "negative_rules": ["NO_NEW_ENTITIES"]
-    }
-}
+    # 🔴 CHANGE THIS:
+    mode = "real"   # or "real"
 
-pipeline = Pipeline("Neutral_Descriptive")
+    result = run_full_pipeline(image_path, mode=mode)
 
-result = pipeline.run(data)
+    print("\n🔥 OUTPUT:")
+    print(result)
 
-print(result)
+
+if __name__ == "__main__":
+    test()
