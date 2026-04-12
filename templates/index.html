@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>✦ Story Painter ✦</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+<div class="blob blob-a" aria-hidden="true"></div>
+<div class="blob blob-b" aria-hidden="true"></div>
+<div class="blob blob-c" aria-hidden="true"></div>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <span class="logo-star">✦</span>
+      <div>
+        <span class="logo-title">Story Painter</span>
+        <span class="logo-sub">multimodal AI · image → story</span>
+      </div>
+    </div>
+    <div class="pipeline-pill">
+      <span>🖼 image</span><span class="sep">›</span>
+      <span>📝 caption</span><span class="sep">›</span>
+      <span>📡 signals</span><span class="sep">›</span>
+      <span>✍ story</span><span class="sep">›</span>
+      <span>✅ validate</span>
+    </div>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- ── LEFT PANEL ──────────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="input-card">
+      <h2 class="card-heading">paint a story</h2>
+      <p class="card-sub">drop an image, set your constraints, and watch the AI weave ✨</p>
+
+      <form id="pipelineForm" enctype="multipart/form-data">
+
+        <div class="field-wrap">
+          <label class="field-label">your image</label>
+          <input type="file" id="imageInput" name="image" accept=".jpg,.jpeg,.png" hidden />
+          <div class="drop-zone" id="dropZone">
+            <div class="drop-inner" id="dropInner">
+              <div class="drop-deco"><span>✦</span><span>◇</span><span>✦</span></div>
+              <p class="drop-main">drag & drop here</p>
+              <p class="drop-hint">or <button type="button" class="link-btn" onclick="document.getElementById('imageInput').click()">browse</button> · JPG / PNG</p>
+            </div>
+            <div class="preview-wrap hidden" id="previewWrap">
+              <img id="previewImg" src="" alt="Preview" />
+              <button type="button" class="remove-btn" id="removeImg">remove ✕</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-wrap">
+          <label class="field-label" for="modeSelect">pipeline mode</label>
+          <div class="sel-wrap">
+            <select id="modeSelect" name="mode">
+              <option value="real">✦ Real Mode — full CLIP + BLIP</option>
+              <option value="debug">◇ Debug Mode — fast, random embedding</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-wrap">
+          <label class="field-label">story constraints</label>
+          <div class="check-list">
+            <label class="check-item">
+              <input type="checkbox" name="constraints" value="no_new_entities" />
+              <span class="check-box"></span>
+              <div class="check-text">
+                <span class="check-title">No new entities</span>
+                <span class="check-desc">only subjects visible in the image</span>
+              </div>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" name="constraints" value="no_off_image_locations" />
+              <span class="check-box"></span>
+              <div class="check-text">
+                <span class="check-title">No off-image locations</span>
+                <span class="check-desc">stay within the scene's geography</span>
+              </div>
+            </label>
+            <label class="check-item">
+              <input type="checkbox" name="constraints" value="keep_story_short" />
+              <span class="check-box"></span>
+              <div class="check-text">
+                <span class="check-title">Keep story short</span>
+                <span class="check-desc">concise, ≤ 50 words</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-generate" id="submitBtn" disabled>
+          <span id="btnLabel">✦ generate story</span>
+        </button>
+
+      </form>
+    </div>
+  </aside>
+
+  <!-- ── RIGHT OUTPUT ────────────────────────────────────────────────────── -->
+  <div class="output-col">
+
+    <div id="emptyState" class="empty-state">
+      <div class="empty-stars">
+        <span class="es es1">✦</span><span class="es es2">◇</span>
+        <span class="es es3">✦</span><span class="es es4">◇</span>
+      </div>
+      <p class="empty-title">your canvas is empty</p>
+      <p class="empty-hint">upload an image to begin</p>
+    </div>
+
+    <div id="loadingState" class="loading-state hidden">
+      <div class="spin-star">✦</div>
+      <p class="loading-title">painting your story…</p>
+      <div class="steps-wrap">
+        <div class="ls-row" id="ls1"><span class="ls-orb"></span><span>encoding image</span></div>
+        <div class="ls-row" id="ls2"><span class="ls-orb"></span><span>generating caption</span></div>
+        <div class="ls-row" id="ls3"><span class="ls-orb"></span><span>extracting signals</span></div>
+        <div class="ls-row" id="ls4"><span class="ls-orb"></span><span>weaving story</span></div>
+        <div class="ls-row" id="ls5"><span class="ls-orb"></span><span>validating · retry loop</span></div>
+        <div class="ls-row" id="ls6"><span class="ls-orb"></span><span>final decision</span></div>
+      </div>
+    </div>
+
+    <div id="resultContainer" class="results hidden">
+
+      <!-- Section 1 -->
+      <div class="result-block">
+        <div class="block-header">
+          <span class="block-num">01</span>
+          <span class="block-title">input snapshot</span>
+        </div>
+        <div class="preview-card">
+          <div class="preview-imgbox">
+            <img id="resultImg" src="" alt="uploaded" />
+          </div>
+          <div class="preview-details">
+            <div class="kv"><span class="kk">mode</span><span class="kv-val" id="metaMode">—</span></div>
+            <div class="kv"><span class="kk">constraints</span><div class="tag-row" id="metaConstraints"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2 -->
+      <div class="result-block">
+        <div class="block-header">
+          <span class="block-num">02</span>
+          <span class="block-title">generation loop</span>
+          <span class="block-badge" id="attemptCount"></span>
+        </div>
+        <div class="trace-list" id="traceList"></div>
+      </div>
+
+      <!-- Section 3 -->
+      <div class="result-block">
+        <div class="block-header">
+          <span class="block-num">03</span>
+          <span class="block-title">final story</span>
+        </div>
+        <div id="finalResult"></div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script>
+const form        = document.getElementById('pipelineForm');
+const imageInput  = document.getElementById('imageInput');
+const dropZone    = document.getElementById('dropZone');
+const dropInner   = document.getElementById('dropInner');
+const previewWrap = document.getElementById('previewWrap');
+const previewImg  = document.getElementById('previewImg');
+const removeImg   = document.getElementById('removeImg');
+const submitBtn   = document.getElementById('submitBtn');
+const btnLabel    = document.getElementById('btnLabel');
+const emptyState  = document.getElementById('emptyState');
+const loadingState= document.getElementById('loadingState');
+const resultContainer = document.getElementById('resultContainer');
+const traceList   = document.getElementById('traceList');
+const finalResult = document.getElementById('finalResult');
+const stepEls     = ['ls1','ls2','ls3','ls4','ls5','ls6'].map(id => document.getElementById(id));
+
+function showPreview(file) {
+  previewImg.src = URL.createObjectURL(file);
+  dropInner.classList.add('hidden');
+  previewWrap.classList.remove('hidden');
+  submitBtn.disabled = false;
+}
+function clearPreview() {
+  previewImg.src = '';
+  dropInner.classList.remove('hidden');
+  previewWrap.classList.add('hidden');
+  imageInput.value = '';
+  submitBtn.disabled = true;
+}
+imageInput.addEventListener('change', () => { if (imageInput.files[0]) showPreview(imageInput.files[0]); });
+removeImg.addEventListener('click', clearPreview);
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && ['image/jpeg','image/png'].includes(f.type)) {
+    const dt = new DataTransfer(); dt.items.add(f); imageInput.files = dt.files; showPreview(f);
+  }
+});
+
+let loadTimer = null;
+function startLoading() {
+  emptyState.classList.add('hidden');
+  resultContainer.classList.add('hidden');
+  loadingState.classList.remove('hidden');
+  stepEls.forEach(el => el.className = 'ls-row');
+  stepEls[0].classList.add('active');
+  let i = 0;
+  const delays = [1800,2500,1400,3000,4000,500];
+  function next() {
+    if (i < stepEls.length - 1) {
+      stepEls[i].classList.remove('active'); stepEls[i].classList.add('done');
+      i++; stepEls[i].classList.add('active');
+      loadTimer = setTimeout(next, delays[i]);
+    }
+  }
+  loadTimer = setTimeout(next, delays[0]);
+}
+function stopLoading() {
+  clearTimeout(loadTimer);
+  loadingState.classList.add('hidden');
+  stepEls.forEach(el => el.classList.add('done'));
+}
+
+function scoreBar(score) {
+  const pct = Math.round((score||0)*100);
+  const cls = pct >= 70 ? 'bar-good' : pct >= 40 ? 'bar-mid' : 'bar-low';
+  return `<div class="score-bar"><div class="score-fill ${cls}" style="width:${pct}%"></div><span class="score-num">${(score||0).toFixed(3)}</span></div>`;
+}
+function tagRow(list) {
+  if (!list || !list.length) return '<span class="tag tag-none">none</span>';
+  return list.map(c => `<span class="tag">${c.replace(/_/g,' ').toLowerCase()}</span>`).join('');
+}
+function failChip(f) {
+  return f ? `<span class="fail-chip">${f.replace(/_/g,' ')}</span>` : '';
+}
+
+function renderTrace(trace) {
+  traceList.innerHTML = '';
+  if (!trace || !trace.length) { traceList.innerHTML = '<p class="soft-note">no trace data available</p>'; return; }
+  trace.forEach((t, idx) => {
+    const isLast = idx === trace.length - 1;
+    const rej = !!t.failure;
+    const d = document.createElement('div');
+    d.className = 'attempt-card ' + (rej ? 'a-rej' : 'a-acc');
+    d.innerHTML = `
+      <div class="a-top">
+        <span class="a-num">attempt ${t.attempt ?? idx+1}</span>
+        <span class="a-badge ${rej ? 'ab-rej' : 'ab-acc'}">${rej ? 'rejected' : 'accepted'}</span>
+        ${isLast ? '<span class="a-latest">latest</span>' : ''}
+      </div>
+      <div class="a-story"><p>${t.story || '<em class="soft-note">no story returned</em>'}</p></div>
+      <div class="a-meta">
+        <div><span class="kk">score</span>${scoreBar(t.score)}</div>
+        <div><span class="kk">failure</span><div>${failChip(t.failure)||'<span class="soft-note">—</span>'}</div></div>
+      </div>
+      <div><span class="kk">constraints</span><div class="tag-row">${tagRow(t.constraints)}</div></div>
+    `;
+    traceList.appendChild(d);
+  });
+}
+
+function renderFinal(data) {
+  const ok = data.decision === 'ACCEPT';
+  finalResult.innerHTML = `
+    <div class="fd ${ok ? 'fd-ok' : 'fd-no'}">
+      <span class="fd-star">${ok ? '✦' : '◇'}</span>
+      <div>
+        <span class="fd-label">${ok ? 'story accepted' : 'story rejected'}</span>
+        <span class="fd-meta">score ${(data.final_score||0).toFixed(4)} · ${data.attempts??0} attempt${data.attempts===1?'':'s'}</span>
+      </div>
+    </div>
+    ${data.final_story ? `<div class="story-card"><span class="kk">final story</span><p class="story-text">${data.final_story}</p></div>` : ''}
+    ${!ok && data.failure ? `<div class="reject-note"><span class="kk">last failure</span>${failChip(data.failure)}</div>` : ''}
+  `;
+}
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!imageInput.files[0]) { alert('Please upload an image first.'); return; }
+  submitBtn.disabled = true;
+  btnLabel.textContent = '⏳ painting…';
+  const selMode = document.getElementById('modeSelect').value;
+  const selConst = [...document.querySelectorAll('input[name="constraints"]:checked')].map(cb => cb.value.replace(/_/g,' ').toUpperCase());
+  const src = previewImg.src;
+  startLoading();
+  try {
+    const resp = await fetch('/run', { method:'POST', body: new FormData(form) });
+    const data = await resp.json();
+    stopLoading();
+    if (data.error) { alert('Pipeline error: ' + data.error); return; }
+    document.getElementById('resultImg').src = src;
+    document.getElementById('metaMode').textContent = selMode === 'debug' ? 'debug mode' : 'real mode';
+    const mc = document.getElementById('metaConstraints');
+    mc.innerHTML = selConst.length ? selConst.map(c=>`<span class="tag">${c.toLowerCase()}</span>`).join('') : '<span class="soft-note">none</span>';
+    document.getElementById('attemptCount').textContent = `${(data.trace||[]).length} attempt(s)`;
+    renderTrace(data.trace);
+    renderFinal(data);
+    resultContainer.classList.remove('hidden');
+    resultContainer.scrollIntoView({ behavior:'smooth', block:'start' });
+  } catch(err) { stopLoading(); alert('Server error: ' + err.message); }
+  finally { submitBtn.disabled = false; btnLabel.textContent = '✦ generate story'; }
+});
+</script>
+</body>
+</html>
