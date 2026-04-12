@@ -151,6 +151,14 @@
     </div>
 
     <div id="resultContainer" class="results hidden">
+      <!-- Professional Disclaimer -->
+      <div class="disclaimer-banner">
+        <span class="disclaimer-icon">ℹ️</span>
+        <p class="disclaimer-text">
+          This system generates stories under strict validation constraints. 
+          If the story does not align with the image, it is automatically refined or not aligned.
+        </p>
+      </div>
 
       <!-- Section 1 -->
       <div class="result-block">
@@ -165,6 +173,10 @@
           <div class="preview-details">
             <div class="kv"><span class="kk">mode</span><span class="kv-val" id="metaMode">—</span></div>
             <div class="kv"><span class="kk">caption</span><span class="kv-val" id="metaCaption">—</span></div>
+            <div class="kv">
+              <span class="kk">detected elements</span>
+              <div class="signal-grid" id="signalGrid"></div>
+            </div>
             <div class="kv"><span class="kk">constraints</span><div class="tag-row" id="metaConstraints"></div></div>
           </div>
         </div>
@@ -296,21 +308,23 @@ function renderTrace(trace) {
   if (!trace || !trace.length) { traceList.innerHTML = '<p class="soft-note">no trace data available</p>'; return; }
   trace.forEach((t, idx) => {
     const isLast = idx === trace.length - 1;
-    const rej = !!t.failure;
+    const rej = !!t.mismatch; // use new key
     const d = document.createElement('div');
     d.className = 'attempt-card ' + (rej ? 'a-rej' : 'a-acc');
     d.innerHTML = `
       <div class="a-top">
-        <span class="a-num">attempt ${t.attempt ?? idx+1}</span>
-        <span class="a-badge ${rej ? 'ab-rej' : 'ab-acc'}">${rej ? 'rejected' : 'accepted'}</span>
+        <span class="a-num">Attempt ${t.attempt ?? idx+1}</span>
+        <span class="a-badge ${rej ? 'ab-rej' : 'ab-acc'}">${rej ? 'not aligned' : 'accepted'}</span>
         ${isLast ? '<span class="a-latest">latest</span>' : ''}
       </div>
       <div class="a-story"><p>${t.story || '<em class="soft-note">no story returned</em>'}</p></div>
       <div class="a-meta">
         <div><span class="kk">score</span>${scoreBar(t.score)}</div>
-        <div><span class="kk">failure</span><div>${failChip(t.failure)||'<span class="soft-note">—</span>'}</div></div>
+        <div><span class="kk">validation mismatch</span><div>${failChip(t.mismatch)||'<span class="soft-note">—</span>'}</div></div>
       </div>
-      <div><span class="kk">constraints</span><div class="tag-row">${tagRow(t.constraints)}</div></div>
+      <span class="a-smart-result">
+        ${rej ? `Result: Not Aligned (${t.mismatch?.replace(/_/g,' ') || 'low alignment'})` : 'Result: Accepted'}
+      </span>
     `;
     traceList.appendChild(d);
   });
@@ -322,7 +336,7 @@ function renderFinal(data) {
       <div class="fd" style="background:#fff0f3; border: 1px solid #ffd0d6;">
         <span class="fd-star" style="color:#e63946">✕</span>
         <div>
-          <span class="fd-label" style="color:#e63946">execution aborted</span>
+          <span class="fd-label" style="color:#e63946">Execution Aborted</span>
           <span class="fd-meta" style="color:#e63946">stopped by user</span>
         </div>
       </div>
@@ -335,13 +349,30 @@ function renderFinal(data) {
     <div class="fd ${ok ? 'fd-ok' : 'fd-no'}">
       <span class="fd-star">${ok ? '✦' : '◇'}</span>
       <div>
-        <span class="fd-label">${ok ? 'story accepted' : 'story rejected'}</span>
+        <span class="fd-label">${ok ? 'Story Accepted' : 'Story Not Aligned'}</span>
         <span class="fd-meta">score ${(data.final_score||0).toFixed(4)} · ${data.attempts??0} attempt${data.attempts===1?'':'s'}</span>
       </div>
     </div>
-    ${data.final_story ? `<div class="story-card"><span class="kk">final story</span><p class="story-text">${data.final_story}</p></div>` : ''}
-    ${!ok && data.failure ? `<div class="reject-note"><span class="kk">last failure</span>${failChip(data.failure)}</div>` : ''}
+    ${data.final_story ? `
+      <div class="story-card">
+        <span class="kk">Final Narrative Output</span>
+        <p class="story-text" id="finalStoryText">${data.final_story}</p>
+        ${ok ? `<button class="tts-btn" onclick="speakStory()">🎧 Listen to this story</button>` : ''}
+      </div>
+    ` : ''}
+    ${!ok && data.validation_mismatch ? `<div class="reject-note"><span class="kk">Validation Mismatch</span>${failChip(data.validation_mismatch)}</div>` : ''}
   `;
+}
+
+function speakStory() {
+  const text = document.getElementById('finalStoryText').innerText;
+  if (!text) return;
+  const msg = new SpeechSynthesisUtterance();
+  msg.text = text;
+  msg.rate = 0.95;
+  msg.pitch = 1.0;
+  window.speechSynthesis.cancel(); // stop any current speech
+  window.speechSynthesis.speak(msg);
 }
 
 form.addEventListener('submit', async e => {
@@ -361,6 +392,30 @@ form.addEventListener('submit', async e => {
     document.getElementById('resultImg').src = src;
     document.getElementById('metaMode').textContent = selMode === 'debug' ? 'debug mode' : 'real mode';
     document.getElementById('metaCaption').textContent = data.caption || '—';
+    
+    // Signals
+    const sg = document.getElementById('signalGrid');
+    sg.innerHTML = '';
+    const sigMap = {
+      'subject': 'Subject',
+      'actions': 'Action',
+      'objects': 'Objects',
+      'environment': 'Environment',
+      'attributes': 'Details'
+    };
+    
+    const sigs = data.signals || {};
+    Object.entries(sigMap).forEach(([key, label]) => {
+      let val = sigs[key];
+      if (Array.isArray(val)) val = val.join(', ');
+      if (!val) val = '—';
+      
+      const item = document.createElement('div');
+      item.className = 'signal-item';
+      item.innerHTML = `<span class="signal-label">${label}</span><span class="signal-val">${val}</span>`;
+      sg.appendChild(item);
+    });
+
     const mc = document.getElementById('metaConstraints');
     mc.innerHTML = selConst.length ? selConst.map(c=>`<span class="tag">${c.toLowerCase()}</span>`).join('') : '<span class="soft-note">none</span>';
     document.getElementById('attemptCount').textContent = `${(data.trace||[]).length} attempt(s)`;

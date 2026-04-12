@@ -72,7 +72,13 @@ class Pipeline:
             caption_text = data["caption_data"]["caption_text"]
             signals = data["signal_extraction"]["semantic_signals"]
             print(f"\n📝 INITIAL CAPTION: {caption_text}")
-            print(f"🎯 TARGET SIGNALS: {signals}")
+            
+            print("🎯 DETECTED ELEMENTS:")
+            print(f"   - Subjects:    {', '.join(signals.get('subjects', [])) or 'none'}")
+            print(f"   - Objects:     {', '.join(signals.get('objects', [])) or 'none'}")
+            print(f"   - Environment: {', '.join(signals.get('environment', [])) or 'none'}")
+            print(f"   - Actions:     {', '.join(signals.get('actions', [])) or 'none'}")
+            print(f"   - Attributes:  {', '.join(signals.get('attributes', [])) or 'none'}")
 
             print("\n⏳ [STEP 1] Validating input structure...")
             # STEP 1: Validate input
@@ -142,32 +148,34 @@ class Pipeline:
                 actual_subjects,
                 data["constraints"]["negative_rules"]
             )
-            print(f"   - Constraint violation detected: {constraint_result['violation']}")
+            if constraint_result['violation']:
+                print(f"   - ⚠️  Constraint violation detected: {constraint_result['violation']}")
 
             # STEP 7: Decision
             if constraint_result["violation"]:
-                decision = "REJECT"
+                decision = "NOT_ALIGNED"
             else:
-                decision = self.decision_engine.decide(
+                raw_decision = self.decision_engine.decide(
                     scores["image_score"],
                     scores["caption_score"],
                     scores["signal_score"],
                     final_score
                 )
+                decision = "ACCEPT" if raw_decision == "ACCEPT" else "NOT_ALIGNED"
 
             print(f"\n⚖️  FINAL PIPELINE DECISION: {decision}")
             if status_cb: status_cb(5, f"Decision: {decision}")
 
-            # STEP 8: Failure Type
+            # STEP 8: Mismatch Type
             failure_type = None
-            if decision == "REJECT":
+            if decision == "NOT_ALIGNED":
                 failure_type = self.failure_classifier.classify(
                     scores["image_score"],
                     scores["caption_score"],
                     scores["signal_score"],
                     final_score
                 )
-                print(f"⚠️  IDENTIFIED FAILURE TYPE: {failure_type}\n")
+                print(f"⚠️  VALIDATION MISMATCH: {failure_type}\n")
 
             # STEP 9: ACCEPT → EXIT
             if decision == "ACCEPT":
@@ -182,19 +190,20 @@ class Pipeline:
                     "best_story_overall": best_story
                 }
 
-            print("⏳ [STEP 10] Handling Rejection and Constraints Regeneration...")
-            # STEP 10: REJECT → HANDLE REGEN
+            # STEP 10: NOT_ALIGNED → HANDLE REGEN
             if abort_check_cb and abort_check_cb():
                 return {"decision": "ABORTED", "reason": "user_aborted", "best_score_overall": best_score, "best_story_overall": best_story}
-
+            
+            # Map NOT_ALIGNED back to REJECT for internal controller logic if needed, 
+            # but keep it clean here.
             regen_result = self.regen.handle_rejection(failure_type)
 
             print(f"🔄 PREPARING FOR RETRY {retry_count + 1}...")
 
             if regen_result["action"] != "RETRY":
-                print("🛑 [STOP] Controller stopped retries (Max retries reached or manual halt)")
+                print("🛑 [STOP] Controller stopped retries (Threshold reached)")
                 return {
-                    "decision": "REJECT",
+                    "decision": "NOT_ALIGNED",
                     "failure_type": failure_type,
                     "attempts": retry_count,
                     "best_score_overall": best_score,
@@ -253,7 +262,7 @@ class Pipeline:
                 "caption": data["caption_data"]["caption_text"],
                 "signals": mapped_signals,
                 "constraints": {
-                    "max_length": 100,
+                    "max_length": 120,
                     "tone": "neutral",
                     "perspective": "third_person",
                     "allowed_emotion_inference": "limited",
@@ -271,10 +280,10 @@ class Pipeline:
             elif "story" in new_story_output:
                 story_text = new_story_output["story"]
             else:
-                print("[ERROR] Unknown language layer output format:", new_story_output)
+                print("[CONSTRAINT VIOLATION] Unknown language layer output format:", new_story_output)
                 return {
-                    "decision": "REJECT",
-                    "reason": "invalid_generator_output",
+                    "decision": "NOT_ALIGNED",
+                    "reason": "generation_failed",
                     "attempts": retry_count
                 }
 
@@ -292,7 +301,7 @@ class Pipeline:
             if retry_count > 2:
                 print("[STOP] Max retries reached")
                 return {
-                    "decision": "REJECT",
+                    "decision": "NOT_ALIGNED",
                     "failure_type": failure_type,
                     "attempts": retry_count,
                     "best_score_overall": best_score,
@@ -425,7 +434,7 @@ def run_full_pipeline(image_path: str, mode="real", preset="Neutral_Descriptive"
         "caption": caption,
         "signals": signals,
         "constraints": {
-            "max_length": 100,
+            "max_length": 120,
             "tone": "neutral",
             "perspective": "third_person",
             "allowed_emotion_inference": "limited",
@@ -457,8 +466,8 @@ def run_full_pipeline(image_path: str, mode="real", preset="Neutral_Descriptive"
     print(story_output)
 
     if "error" in story_output:
-        print("❌ Language layer failed")
-        return {"decision": "REJECT", "reason": "generation_failed"}
+        print("❌ Language layer encountered a constraint violation")
+        return {"decision": "NOT_ALIGNED", "reason": "generation_failed"}
 
     # -------------------------
     # 🔴 ADAPT FOR VALIDATION
@@ -478,6 +487,7 @@ def run_full_pipeline(image_path: str, mode="real", preset="Neutral_Descriptive"
     pipeline = Pipeline(preset)
     result = pipeline.run(validation_input, status_cb=status_cb, abort_check_cb=abort_check_cb)
     result["caption"] = caption
+    result["raw_signals"] = signals
 
     print("\n✅ FINAL RESULT:")
     print(result)

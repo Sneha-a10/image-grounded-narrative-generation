@@ -109,12 +109,12 @@ def run():
     # ── 5. Normalise result to the shape the UI expects ──────────────────────
     #
     # Your Pipeline.run() returns different shapes depending on path:
-    #   ACCEPT → { decision, final_score, scores, attempts }
-    #   REJECT → { decision, failure_type, attempts }          (no story)
+    #   ACCEPT      → { decision, final_score, scores, attempts }
+    #   NOT_ALIGNED → { decision, mismatch_type, attempts }    (no story)
     #   error  → { error, ... }
     #
     # run_full_pipeline() itself may also return:
-    #   { decision: "REJECT", reason: "..." }
+    #   { decision: "NOT_ALIGNED", reason: "..." }
     #
     # We harmonise everything so the frontend always gets the same contract.
     # ─────────────────────────────────────────────────────────────────────────
@@ -122,26 +122,25 @@ def run():
     if "error" in raw_result:
         return jsonify({"error": raw_result["error"]}), 500
 
-    decision    = raw_result.get("decision", "REJECT")
+    decision    = raw_result.get("decision", "NOT_ALIGNED")
     
     # Intelligently fallback to the best overall tracked score & story if we hit max retries
     final_score = raw_result.get("final_score", raw_result.get("best_score_overall", 0.0))
     final_story = raw_result.get("final_story", raw_result.get("best_story_overall", ""))
     
     attempts    = raw_result.get("attempts",    0)
-    failure     = raw_result.get("failure_type") or raw_result.get("reason") or None
+    # failure -> validation_mismatch
+    mismatch    = raw_result.get("failure_type") or raw_result.get("reason") or None
     trace       = raw_result.get("trace", [])         # may be empty; we build a minimal one
     scores      = raw_result.get("scores", {})
 
-    # Build a minimal trace entry from what we know if the pipeline didn't
-    # expose a full trace (your current Pipeline.run() doesn't fill "trace").
-    # This keeps the UI working even before you wire up trace collection.
+    # Build a minimal trace entry
     if not trace:
         entry = {
             "attempt":     attempts,
             "story":       final_story or "(no story returned)",
             "score":       final_score,
-            "failure":     failure if decision == "REJECT" else None,
+            "mismatch":    mismatch if decision == "NOT_ALIGNED" else None,
             "constraints": user_constraints,
             "scores":      scores,
         }
@@ -152,8 +151,9 @@ def run():
         "final_score": round(float(final_score), 4),
         "final_story": final_story,
         "caption":     raw_result.get("caption", "Unknown caption"),
+        "signals":     raw_result.get("raw_signals", {}),
         "attempts":    attempts,
-        "failure":     failure,
+        "validation_mismatch": mismatch,
         "trace":       trace,
         "user_constraints": user_constraints,
     }

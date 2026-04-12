@@ -19,7 +19,7 @@ def test_language_layer():
         },
 
         "constraints": {
-            "max_length": 50,
+            "max_length": 120,
             "tone": "neutral",
             "perspective": "third_person",
             "allowed_emotion_inference": "limited",

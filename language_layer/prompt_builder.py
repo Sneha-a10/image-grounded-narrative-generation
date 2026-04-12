@@ -37,13 +37,24 @@ CONSTRAINTS:
 
 STRICT RULES:
 {negative_rules}
+STRICT OUTPUT REQUIREMENTS:
+- The story MUST be 2 to 3 full sentences
+- Total length MUST be at least 25–40 words
+- MUST clearly describe the scene, actions, and setting
+- MUST include the main subject and at least one object
+- MUST include some natural detail (lighting, position, interaction, etc.)
+- MUST sound like a natural human description, not a label
 
-HARD REQUIREMENTS:
-- DO NOT introduce new entities
-- ONLY use listed subject and objects
-- ONLY use listed environment
-- KEEP story simple and direct
-- Emotion must match given emotion
+- DO NOT produce short phrases like:
+  "X in place", "object present", "entity exists"
+
+- Even if signals are weak, intelligently expand into a realistic scene
+
+FAILURE TO FOLLOW THESE RULES IS NOT ALLOWED
+
+GOOD EXAMPLE STORY:
+"A white cat with bright green eyes cautiously peeks through a dense bush, partially hidden among the leaves. 
+It watches its surroundings attentively, as if observing something beyond the frame in a quiet outdoor setting."
 
 Return ONLY valid JSON:
 
