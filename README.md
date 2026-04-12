@@ -280,13 +280,3 @@ All outputs are verified through deterministic validation.
 
 ---
 
-## 👩💻 Author
-
-Sneha Agarwal
-BTech Computer Science
-
----
-
-## 🧾 License
-
-For academic use only
