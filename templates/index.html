@@ -69,6 +69,17 @@
         </div>
 
         <div class="field-wrap">
+          <label class="field-label" for="preset">story style preset</label>
+          <div class="sel-wrap">
+            <select id="preset" name="preset">
+              <option value="Neutral_Descriptive">Neutral Descriptive</option>
+              <option value="Reflective_Light">Reflective Light</option>
+              <option value="Expressive_Grounded">Expressive Grounded</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-wrap">
           <label class="field-label">story constraints</label>
           <div class="check-list">
             <label class="check-item">
@@ -98,9 +109,17 @@
           </div>
         </div>
 
-        <button type="submit" class="btn-generate" id="submitBtn" disabled>
-          <span id="btnLabel">✦ generate story</span>
-        </button>
+        <div class="field-wrap">
+          <label class="field-label" for="caption">Optional Caption:</label>
+          <input type="text" id="caption" class="styled-input" name="caption" placeholder="Enter caption (optional)" style="width: 100%; box-sizing: border-box; padding: 0.8rem; border-radius: var(--rd-sm); border: 1px solid var(--border); background: var(--bg-card); font-family: inherit;">
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+          <button type="submit" class="btn-generate" id="submitBtn" disabled style="flex: 1;">
+            <span id="btnLabel">✦ generate story</span>
+          </button>
+          <button type="button" class="btn-stop hidden" id="stopBtn" style="background: #e63946; color: white; border: none; padding: 0 1.5rem; border-radius: 99px; cursor: pointer; font-family: inherit; font-size: 1rem;">stop ✕</button>
+        </div>
 
       </form>
     </div>
@@ -145,6 +164,7 @@
           </div>
           <div class="preview-details">
             <div class="kv"><span class="kk">mode</span><span class="kv-val" id="metaMode">—</span></div>
+            <div class="kv"><span class="kk">caption</span><span class="kv-val" id="metaCaption">—</span></div>
             <div class="kv"><span class="kk">constraints</span><div class="tag-row" id="metaConstraints"></div></div>
           </div>
         </div>
@@ -182,6 +202,7 @@ const previewWrap = document.getElementById('previewWrap');
 const previewImg  = document.getElementById('previewImg');
 const removeImg   = document.getElementById('removeImg');
 const submitBtn   = document.getElementById('submitBtn');
+const stopBtn     = document.getElementById('stopBtn');
 const btnLabel    = document.getElementById('btnLabel');
 const emptyState  = document.getElementById('emptyState');
 const loadingState= document.getElementById('loadingState');
@@ -221,23 +242,41 @@ function startLoading() {
   resultContainer.classList.add('hidden');
   loadingState.classList.remove('hidden');
   stepEls.forEach(el => el.className = 'ls-row');
-  stepEls[0].classList.add('active');
-  let i = 0;
-  const delays = [1800,2500,1400,3000,4000,500];
-  function next() {
-    if (i < stepEls.length - 1) {
-      stepEls[i].classList.remove('active'); stepEls[i].classList.add('done');
-      i++; stepEls[i].classList.add('active');
-      loadTimer = setTimeout(next, delays[i]);
-    }
-  }
-  loadTimer = setTimeout(next, delays[0]);
+  
+  stopBtn.classList.remove('hidden');
+  stopBtn.disabled = false;
+  stopBtn.textContent = 'stop ✕';
+
+  loadTimer = setInterval(async () => {
+    try {
+      const res = await fetch('/status');
+      const data = await res.json();
+      const currentStep = data.step;
+      
+      stepEls.forEach((el, index) => {
+        if (index < currentStep) {
+          el.className = 'ls-row done';
+        } else if (index === currentStep) {
+          el.className = 'ls-row active';
+        } else {
+          el.className = 'ls-row';
+        }
+      });
+    } catch (err) {}
+  }, 500);
 }
 function stopLoading() {
-  clearTimeout(loadTimer);
+  clearInterval(loadTimer);
   loadingState.classList.add('hidden');
   stepEls.forEach(el => el.classList.add('done'));
+  stopBtn.classList.add('hidden');
 }
+
+stopBtn.addEventListener('click', async () => {
+  stopBtn.disabled = true;
+  stopBtn.textContent = 'stopping...';
+  try { await fetch('/stop', {method: 'POST'}); } catch(e) {}
+});
 
 function scoreBar(score) {
   const pct = Math.round((score||0)*100);
@@ -278,6 +317,19 @@ function renderTrace(trace) {
 }
 
 function renderFinal(data) {
+  if (data.decision === 'ABORTED') {
+    finalResult.innerHTML = `
+      <div class="fd" style="background:#fff0f3; border: 1px solid #ffd0d6;">
+        <span class="fd-star" style="color:#e63946">✕</span>
+        <div>
+          <span class="fd-label" style="color:#e63946">execution aborted</span>
+          <span class="fd-meta" style="color:#e63946">stopped by user</span>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
   const ok = data.decision === 'ACCEPT';
   finalResult.innerHTML = `
     <div class="fd ${ok ? 'fd-ok' : 'fd-no'}">
@@ -308,6 +360,7 @@ form.addEventListener('submit', async e => {
     if (data.error) { alert('Pipeline error: ' + data.error); return; }
     document.getElementById('resultImg').src = src;
     document.getElementById('metaMode').textContent = selMode === 'debug' ? 'debug mode' : 'real mode';
+    document.getElementById('metaCaption').textContent = data.caption || '—';
     const mc = document.getElementById('metaConstraints');
     mc.innerHTML = selConst.length ? selConst.map(c=>`<span class="tag">${c.toLowerCase()}</span>`).join('') : '<span class="soft-note">none</span>';
     document.getElementById('attemptCount').textContent = `${(data.trace||[]).length} attempt(s)`;

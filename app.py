@@ -21,6 +21,18 @@ app = Flask(__name__)
 UPLOAD_FOLDER = os.path.join(PROJECT_ROOT, "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+PIPELINE_STATUS = {"step": -1, "message": "Idle", "abort_requested": False}
+
+@app.route("/status")
+def status():
+    return jsonify(PIPELINE_STATUS)
+
+@app.route("/stop", methods=["POST"])
+def stop_pipeline():
+    global PIPELINE_STATUS
+    PIPELINE_STATUS["abort_requested"] = True
+    return jsonify({"status": "stopping"})
+
 
 # ── Constraint label → internal rule mapping ─────────────────────────────────
 CONSTRAINT_MAP = {
@@ -56,13 +68,34 @@ def run():
 
     # ── 3. Read form params ──────────────────────────────────────────────────
     mode        = request.form.get("mode", "real")           # "real" | "debug"
+    preset      = request.form.get("preset", "Neutral_Descriptive")
+    user_caption= request.form.get("caption", "").strip()    # optional caption
+    if not user_caption:
+        user_caption = None
     raw_checks  = request.form.getlist("constraints")        # list of checkbox values
 
     user_constraints = [CONSTRAINT_MAP[c] for c in raw_checks if c in CONSTRAINT_MAP]
 
     # ── 4. Run pipeline ──────────────────────────────────────────────────────
+    global PIPELINE_STATUS
+    PIPELINE_STATUS["abort_requested"] = False
+
+    def update_status(step_idx, message):
+        PIPELINE_STATUS["step"] = step_idx
+        PIPELINE_STATUS["message"] = message
+        
+    def check_abort():
+        return PIPELINE_STATUS.get("abort_requested", False)
+
     try:
-        raw_result = run_full_pipeline(image_path, mode=mode)
+        raw_result = run_full_pipeline(
+            image_path, 
+            mode=mode, 
+            preset=preset,
+            user_caption=user_caption, 
+            status_cb=update_status,
+            abort_check_cb=check_abort
+        )
     except Exception as exc:
         traceback.print_exc()
         return jsonify({"error": str(exc)}), 500
@@ -90,9 +123,12 @@ def run():
         return jsonify({"error": raw_result["error"]}), 500
 
     decision    = raw_result.get("decision", "REJECT")
-    final_score = raw_result.get("final_score", 0.0)
+    
+    # Intelligently fallback to the best overall tracked score & story if we hit max retries
+    final_score = raw_result.get("final_score", raw_result.get("best_score_overall", 0.0))
+    final_story = raw_result.get("final_story", raw_result.get("best_story_overall", ""))
+    
     attempts    = raw_result.get("attempts",    0)
-    final_story = raw_result.get("final_story", "")   # present only if caller sets it
     failure     = raw_result.get("failure_type") or raw_result.get("reason") or None
     trace       = raw_result.get("trace", [])         # may be empty; we build a minimal one
     scores      = raw_result.get("scores", {})
@@ -115,6 +151,7 @@ def run():
         "decision":    decision,
         "final_score": round(float(final_score), 4),
         "final_story": final_story,
+        "caption":     raw_result.get("caption", "Unknown caption"),
         "attempts":    attempts,
         "failure":     failure,
         "trace":       trace,

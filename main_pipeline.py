@@ -27,6 +27,10 @@ from language_layer.language_layer_main import language_layer_pipeline
 
 from constraint_generation.constraint_generation import generate_constraints
 
+# ---- GLOBAL SINGLETONS ----
+_SHARED_ENCODER = None
+_SHARED_CAPTIONER = None
+
 class Pipeline:
 
     def __init__(self, preset_family, user_negative_prompts=None):
@@ -49,21 +53,40 @@ class Pipeline:
             user_negative_prompts
         )
 
-    def run(self, data):
+    def run(self, data, status_cb=None, abort_check_cb=None):
 
         retry_count = 0
+        best_score = -1.0
+        best_story = ""
 
         while True:
+            if abort_check_cb and abort_check_cb():
+                print("🛑 [ABORT] Pipeline stopped by user.")
+                return {"decision": "ABORTED", "reason": "user_aborted", "best_score_overall": best_score, "best_story_overall": best_story}
 
+            if status_cb: status_cb(4, f"Validating · Attempt {retry_count}")
+            print(f"\n{'='*50}")
+            print(f"🔄 STARTING EVALUATION LOOP | ATTEMPT {retry_count}")
+            print(f"{'='*50}")
+
+            caption_text = data["caption_data"]["caption_text"]
+            signals = data["signal_extraction"]["semantic_signals"]
+            print(f"\n📝 INITIAL CAPTION: {caption_text}")
+            print(f"🎯 TARGET SIGNALS: {signals}")
+
+            print("\n⏳ [STEP 1] Validating input structure...")
             # STEP 1: Validate input
             if not self.validator.validate(data):
+                print("❌ Invalid input data structure!")
                 return {"error": "Invalid input"}
 
             story = data["generation_output"]["story_text"]
+            print(f"\n📖 CURRENT STORY TO EVALUATE:\n{story}\n")
 
             # STEP 2: Preprocess
             processed = self.preprocessor.process(story)
 
+            print("⏳ [STEP 3] Running Scorers (Caption, Image, Signal)...")
             # STEP 3: Scores
             caption_score = self.caption_scorer.score(
                 data["caption_data"]["caption_text"],
@@ -95,6 +118,17 @@ class Pipeline:
                 scores["signal_score"]
             )
 
+            if final_score > best_score:
+                best_score = final_score
+                best_story = story
+
+            print("\n📊 EVALUATION SCORES:")
+            print(f"   - Caption alignment: {scores['caption_score']:.4f}")
+            print(f"   - Image alignment:   {scores['image_score']:.4f}")
+            print(f"   - Signal alignment:  {scores['signal_score']:.4f}")
+            print(f"   => FINAL AGGREGATE SCORE: {final_score:.4f}\n")
+
+            print("⏳ [STEP 6] Checking Structural Constraints...")
             # STEP 6: Constraint Check
             expected_subjects = data["signal_extraction"]["semantic_signals"]["subjects"]
 
@@ -108,6 +142,7 @@ class Pipeline:
                 actual_subjects,
                 data["constraints"]["negative_rules"]
             )
+            print(f"   - Constraint violation detected: {constraint_result['violation']}")
 
             # STEP 7: Decision
             if constraint_result["violation"]:
@@ -120,6 +155,9 @@ class Pipeline:
                     final_score
                 )
 
+            print(f"\n⚖️  FINAL PIPELINE DECISION: {decision}")
+            if status_cb: status_cb(5, f"Decision: {decision}")
+
             # STEP 8: Failure Type
             failure_type = None
             if decision == "REJECT":
@@ -129,27 +167,38 @@ class Pipeline:
                     scores["signal_score"],
                     final_score
                 )
+                print(f"⚠️  IDENTIFIED FAILURE TYPE: {failure_type}\n")
 
             # STEP 9: ACCEPT → EXIT
             if decision == "ACCEPT":
+                print(f"🎉 SUCCESS! Story accepted on attempt {retry_count}.")
                 return {
                     "decision": "ACCEPT",
                     "final_score": final_score,
+                    "final_story": story,
                     "scores": scores,
-                    "attempts": retry_count
+                    "attempts": retry_count,
+                    "best_score_overall": best_score,
+                    "best_story_overall": best_story
                 }
 
+            print("⏳ [STEP 10] Handling Rejection and Constraints Regeneration...")
             # STEP 10: REJECT → HANDLE REGEN
+            if abort_check_cb and abort_check_cb():
+                return {"decision": "ABORTED", "reason": "user_aborted", "best_score_overall": best_score, "best_story_overall": best_story}
+
             regen_result = self.regen.handle_rejection(failure_type)
 
-            print(f"[RETRY] Attempt {retry_count + 1} | Failure: {failure_type}")
+            print(f"🔄 PREPARING FOR RETRY {retry_count + 1}...")
 
             if regen_result["action"] != "RETRY":
-                print("[STOP] Controller stopped retries")
+                print("🛑 [STOP] Controller stopped retries (Max retries reached or manual halt)")
                 return {
                     "decision": "REJECT",
                     "failure_type": failure_type,
-                    "attempts": retry_count
+                    "attempts": retry_count,
+                    "best_score_overall": best_score,
+                    "best_story_overall": best_story
                 }
 
             retry_count = regen_result["constraint_input"]["retry_count"]
@@ -245,7 +294,9 @@ class Pipeline:
                 return {
                     "decision": "REJECT",
                     "failure_type": failure_type,
-                    "attempts": retry_count
+                    "attempts": retry_count,
+                    "best_score_overall": best_score,
+                    "best_story_overall": best_story
                 }
 
 def adapt_to_validation_format(caption, embedding, signals, story_output):
@@ -285,23 +336,35 @@ def adapt_to_validation_format(caption, embedding, signals, story_output):
     }
 
 
-def run_full_pipeline(image_path: str, mode="real"):
+def run_full_pipeline(image_path: str, mode="real", preset="Neutral_Descriptive", user_caption=None, status_cb=None, abort_check_cb=None):
     """
     mode:
     - "debug" → fast (random embedding, skips heavy models)
     - "real"  → full system (CLIP + BLIP + signals)
     """
+    def notify(step_idx, text):
+        if status_cb: status_cb(step_idx, text)
+        print(text)
+        
+    def check_abort():
+        if abort_check_cb and abort_check_cb():
+            print("🛑 [ABORT] Pipeline stopped by user.")
+            return True
+        return False
 
     import random
 
-    print(f"\n🚀 RUNNING MODE: {mode.upper()}\n")
+    notify(0, f"\n🚀 RUNNING MODE: {mode.upper()}\n")
 
     # -------------------------
     # 🔴 MODE 1: DEBUG (FAST)
     # -------------------------
     if mode == "debug":
 
-        caption = "A dog playing with a ball in a park"
+        if user_caption:
+            caption = user_caption
+        else:
+            caption = "A dog playing with a ball in a park"
 
         signals = {
             "subject": "dog",
@@ -321,16 +384,35 @@ def run_full_pipeline(image_path: str, mode="real"):
     # -------------------------
     else:
         # 1. Vision (CLIP)
-        encoder = VisionEncoder()
+        global _SHARED_ENCODER, _SHARED_CAPTIONER
+
+        if _SHARED_ENCODER is None:
+            _SHARED_ENCODER = VisionEncoder()
+
+        if _SHARED_CAPTIONER is None:
+            _SHARED_CAPTIONER = ImageCaptioner()
+
+        encoder = _SHARED_ENCODER
+        captioner = _SHARED_CAPTIONER 
+
+        notify(0, "Encoding image...")
         embedding = encoder.encode(image_path)
         print("EMBEDDING:", len(embedding))
 
+        if check_abort(): return {"decision": "ABORTED", "reason": "user_aborted"}
+
         # 2. Caption (BLIP)
-        captioner = ImageCaptioner()
-        caption = captioner.generate_caption(image_path)
+        notify(1, "Generating/Fetching caption...")
+        if user_caption:
+            caption = user_caption
+        else:
+            caption = captioner.generate_caption(image_path)
         print("CAPTION:", caption)
 
+        if check_abort(): return {"decision": "ABORTED", "reason": "user_aborted"}
+
         # 3. Signals
+        notify(2, "Extracting semantic signals...")
         extractor = SignalExtractor()
         signals = extractor.extract(caption)
         print("SIGNALS:", signals)
@@ -365,7 +447,10 @@ def run_full_pipeline(image_path: str, mode="real"):
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
+    if check_abort(): return {"decision": "ABORTED", "reason": "user_aborted", "caption": caption}
+
     # 4. Generate story
+    notify(3, "Weaving narrative...")
     story_output = language_layer_pipeline(input_data)
 
     print("\n🧠 GENERATED STORY:")
@@ -388,77 +473,17 @@ def run_full_pipeline(image_path: str, mode="real"):
     # -------------------------
     # 🔴 RUN PIPELINE
     # -------------------------
-    pipeline = Pipeline("Neutral_Descriptive")
-    result = pipeline.run(validation_input)
+    if check_abort(): return {"decision": "ABORTED", "reason": "user_aborted", "caption": caption}
+
+    pipeline = Pipeline(preset)
+    result = pipeline.run(validation_input, status_cb=status_cb, abort_check_cb=abort_check_cb)
+    result["caption"] = caption
 
     print("\n✅ FINAL RESULT:")
     print(result)
 
     return result
 
-    image_path = "test.png"
-    # 1. Vision (embedding)
-    encoder = VisionEncoder()
-    embedding = encoder.encode(image_path)
-
-    print("EMBEDDING:", embedding.shape)
-
-    # 2. Caption
-    captioner = ImageCaptioner()
-    caption = captioner.generate_caption(image_path)
-
-    print("CAPTION:", caption)
-
-    # 3. Signals
-    extractor = SignalExtractor()
-    signals = extractor.extract(caption)
-
-    print("SIGNALS:", signals)
-
-    # 4. Language Layer
-    input_data = {
-        "image_id": "test_img",
-        "caption": caption,
-        "signals": signals,
-        "constraints": {
-            "max_length": 100,
-            "tone": "neutral",
-            "perspective": "third_person",
-            "allowed_emotion_inference": "limited",
-            "negative_rules": [
-                "NO_NEW_ENTITIES",
-                "NO_OFF_IMAGE_LOCATIONS"
-            ]
-        }
-    }
-
-    story_output = language_layer_pipeline(input_data)
-
-    print("STORY OUTPUT:", story_output)
-
-    if "error" in story_output:
-        print("Language layer failed:", story_output)
-
-        return {
-            "decision": "REJECT",
-            "reason": "language_layer_failure"
-        }
-
-    # 5. Adapt to validation format
-    validation_input = adapt_to_validation_format(
-        caption,
-        embedding,
-        signals,
-        story_output
-    )
-
-    # 6. Run validation pipeline
-    pipeline = Pipeline("Neutral_Descriptive")
-    result = pipeline.run(validation_input)
-
-    print("FINAL RESULT:", result)
-
-    return result
 
 if __name__ == "__main__":
     result = run_full_pipeline("test.png")
