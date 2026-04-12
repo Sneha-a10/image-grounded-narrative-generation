@@ -39,8 +39,9 @@ def parse_output(raw_output, image_id, signals):
         data["image_id"] = image_id
         return data
 
-    except:
+    except Exception as e:
+        print(f"❌ PARSING ERROR: {str(e)}")
         return {
             "image_id": image_id,
-            "error": "Invalid JSON or schema"
+            "error": f"Invalid JSON or schema: {str(e)}"
         }

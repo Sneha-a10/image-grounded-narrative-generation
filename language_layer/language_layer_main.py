@@ -20,6 +20,7 @@ def language_layer_pipeline(input_data):
     )
 
     if "error" in final_output:
+        print(f"⚠️  LANGUAGE LAYER FALLBACK TRIGGERED: {final_output['error']}")
         # ---- DYNAMIC FALLBACK GENERATOR ----
 
         signals = input_data.get("signals", {})
