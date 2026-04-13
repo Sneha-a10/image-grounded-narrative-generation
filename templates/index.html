@@ -357,7 +357,13 @@ function renderFinal(data) {
       <div class="story-card">
         <span class="kk">Final Narrative Output</span>
         <p class="story-text" id="finalStoryText">${data.final_story}</p>
-        ${ok ? `<button class="tts-btn" onclick="speakStory()">🎧 Listen to this story</button>` : ''}
+        ${data.audio_path ? `
+          <div class="audio-section" style="margin-top: 1rem;">
+            <span class="kk">View Audio Here:</span>
+            <audio controls style="width: 100%; margin-top: 0.5rem;" src="/audio/${data.audio_path}?t=${Date.now()}"></audio>
+          </div>
+        ` : ''}
+        ${ok ? `<button class="tts-btn" style="margin-top: 1rem;" onclick="speakStory()">🎧 Listen to this story (Browser TTS)</button>` : ''}
       </div>
     ` : ''}
     ${!ok && data.validation_mismatch ? `<div class="reject-note"><span class="kk">Validation Mismatch</span>${failChip(data.validation_mismatch)}</div>` : ''}

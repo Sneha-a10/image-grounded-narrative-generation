@@ -26,6 +26,7 @@ from signal_extraction.extractor import SignalExtractor
 from language_layer.language_layer_main import language_layer_pipeline
 
 from constraint_generation.constraint_generation import generate_constraints
+from tts import generate_audio
 
 # ---- GLOBAL SINGLETONS ----
 _SHARED_ENCODER = None
@@ -490,6 +491,17 @@ def run_full_pipeline(image_path: str, mode="real", preset="Neutral_Descriptive"
     result = pipeline.run(validation_input, status_cb=status_cb, abort_check_cb=abort_check_cb)
     result["caption"] = caption
     result["raw_signals"] = signals
+
+    # ---- GENERATE FINAL AUDIO ----
+    story_to_read = result.get("final_story") or result.get("best_story_overall")
+    if story_to_read:
+        notify(4, "Generating audio from the final story...")
+        try:
+            audio_path = generate_audio(story_to_read)
+            result["audio_path"] = audio_path
+            notify(5, f"Audio saved to: {audio_path}")
+        except Exception as e:
+            notify(5, f"Warning: Could not generate audio - {e}")
 
     print("\n✅ FINAL RESULT:")
     print(result)

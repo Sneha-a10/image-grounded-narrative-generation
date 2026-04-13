@@ -3,7 +3,7 @@ import sys
 import uuid
 import json
 import traceback
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_file
 
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
@@ -22,6 +22,10 @@ UPLOAD_FOLDER = os.path.join(PROJECT_ROOT, "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 PIPELINE_STATUS = {"step": -1, "message": "Idle", "abort_requested": False}
+
+@app.route("/audio/<path:filename>")
+def serve_audio(filename):
+    return send_file(os.path.join(PROJECT_ROOT, filename))
 
 @app.route("/status")
 def status():
@@ -156,6 +160,7 @@ def run():
         "validation_mismatch": mismatch,
         "trace":       trace,
         "user_constraints": user_constraints,
+        "audio_path":  raw_result.get("audio_path"),
     }
 
     return jsonify(response)
