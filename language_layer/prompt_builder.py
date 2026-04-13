@@ -30,6 +30,9 @@ Action:
 Emotion:
 {signals["emotion_hint"]}
 
+Attributes:
+{signals.get("attributes", [])}
+
 CONSTRAINTS:
 - Max Length: {constraints['max_length']} words
 - Tone: {constraints['tone']}

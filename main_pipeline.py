@@ -254,7 +254,8 @@ class Pipeline:
                 "objects": sem_sig.get("objects", []),
                 "environment": sem_sig.get("environment", []),
                 "action_state": sem_sig["actions"][0] if sem_sig.get("actions") else None,
-                "emotion_hint": sem_sig["attributes"][0] if sem_sig.get("attributes") else None
+                "emotion_hint": sem_sig.get("emotion_hint"),
+                "attributes": sem_sig.get("attributes", [])
             }
 
             regen_input = {
@@ -331,8 +332,9 @@ def adapt_to_validation_format(caption, embedding, signals, story_output):
                 "subjects": [signals.get("subject")] if signals.get("subject") else [],
                 "objects": signals.get("objects", []),
                 "environment": signals.get("environment", []),
-                "actions": [signals.get("action_state")] if signals.get("action_state") else [],
-                "attributes": [signals.get("emotion_hint")] if signals.get("emotion_hint") else []
+                "actions": signals.get("actions", []),
+                "attributes": signals.get("attributes", []),
+                "emotion_hint": signals.get("emotion_hint")
             }
         },
 

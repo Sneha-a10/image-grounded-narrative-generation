@@ -12,7 +12,7 @@ class SignalConsistencyScorer:
         signals = set()
 
         for token in doc:
-            if token.pos_ in {"NOUN", "PROPN"}:
+            if token.pos_ in {"NOUN", "PROPN", "ADJ"}:
                 signals.add(token.lemma_)
 
         return signals
@@ -24,6 +24,9 @@ class SignalConsistencyScorer:
         expected.update(signals.get("objects", []))
         expected.update(signals.get("environment", []))
         expected.update(signals.get("actions", []))
+        expected.update(signals.get("attributes", []))
+        if signals.get("emotion_hint"):
+            expected.add(signals.get("emotion_hint"))
 
         return set(s.lower() for s in expected)
 

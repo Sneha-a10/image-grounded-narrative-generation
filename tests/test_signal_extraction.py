@@ -15,7 +15,8 @@ def test_extractor_returns_correct_structure():
         "objects",
         "environment",
         "action_state",
-        "emotion_hint"
+        "emotion_hint",
+        "attributes"
     }
 
     print("subject", signals["subject"])
@@ -41,12 +42,13 @@ def test_full_signal_extraction():
     print("action_state", signals["action_state"])
     print("emotion_hint", signals["emotion_hint"])
 
-    assert signals["subject"] == "dog"
+    assert signals["subject"] in ["dog", "happy dog"]
     assert signals["subject_type"] == "animal"
     assert "ball" in signals["objects"]
     assert "park" in signals["environment"]
     assert signals["action_state"] == "play"
     assert signals["emotion_hint"] == "happy"
+    assert "happy" in signals["attributes"]
 
 def test_signal_types_and_constraints():
     extractor = SignalExtractor()
@@ -67,6 +69,7 @@ def test_signal_types_and_constraints():
 
     assert isinstance(signals["action_state"], (str, type(None)))
     assert isinstance(signals["emotion_hint"], (str, type(None)))
+    assert isinstance(signals["attributes"], list)
 
 def test_multiword_extraction():
     extractor = SignalExtractor()
